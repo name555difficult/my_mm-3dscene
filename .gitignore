@@ -1,6 +1,7 @@
-
+**/_pycache_
 .DS_Store
 detection/.DS_Store
 detection/pretrain/.DS_Store
 detection/pretrain/.DS_Store
 detection/.DS_Store
+.vscode/

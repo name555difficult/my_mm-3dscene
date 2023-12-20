@@ -1,0 +1,14 @@
+# ninja log v5
+3	9905	1703056722861232424	/home/ssd8t/wzb/mm-3dscene/segmentation/lib/pointops/build/temp.linux-x86_64-cpython-310/src/sampling/sampling_cuda.o	bd8942133c58efad
+4	9923	1703056722881233096	/home/ssd8t/wzb/mm-3dscene/segmentation/lib/pointops/build/temp.linux-x86_64-cpython-310/src/subtraction/subtraction_cuda.o	7ff9656041cbe7a
+2	10174	1703056723133241564	/home/ssd8t/wzb/mm-3dscene/segmentation/lib/pointops/build/temp.linux-x86_64-cpython-310/src/interpolation/interpolation_cuda.o	10ab6ebb6843a518
+1	10341	1703056723297247075	/home/ssd8t/wzb/mm-3dscene/segmentation/lib/pointops/build/temp.linux-x86_64-cpython-310/src/grouping/grouping_cuda.o	30920c2364080875
+2	10377	1703056723333248285	/home/ssd8t/wzb/mm-3dscene/segmentation/lib/pointops/build/temp.linux-x86_64-cpython-310/src/knnquery/knnquery_cuda.o	65d9d1c66eeb561b
+0	10991	1703056723953269118	/home/ssd8t/wzb/mm-3dscene/segmentation/lib/pointops/build/temp.linux-x86_64-cpython-310/src/aggregation/aggregation_cuda.o	ff60da426df6f6fc
+3	24280	1703056737229714812	/home/ssd8t/wzb/mm-3dscene/segmentation/lib/pointops/build/temp.linux-x86_64-cpython-310/src/pointops_api.o	88c630ce5a0e9572
+2	24815	1703056737777733193	/home/ssd8t/wzb/mm-3dscene/segmentation/lib/pointops/build/temp.linux-x86_64-cpython-310/src/interpolation/interpolation_cuda_kernel.o	732cd72f4d841249
+1	25657	1703056738621761499	/home/ssd8t/wzb/mm-3dscene/segmentation/lib/pointops/build/temp.linux-x86_64-cpython-310/src/aggregation/aggregation_cuda_kernel.o	736ae4803202c7a1
+4	25775	1703056738741765524	/home/ssd8t/wzb/mm-3dscene/segmentation/lib/pointops/build/temp.linux-x86_64-cpython-310/src/subtraction/subtraction_cuda_kernel.o	8ec39c87925c43a6
+3	26064	1703056739033775316	/home/ssd8t/wzb/mm-3dscene/segmentation/lib/pointops/build/temp.linux-x86_64-cpython-310/src/knnquery/knnquery_cuda_kernel.o	806f4e5454b0639d
+4	26139	1703056739105777730	/home/ssd8t/wzb/mm-3dscene/segmentation/lib/pointops/build/temp.linux-x86_64-cpython-310/src/sampling/sampling_cuda_kernel.o	405648db245efefd
+1	26336	1703056739301784303	/home/ssd8t/wzb/mm-3dscene/segmentation/lib/pointops/build/temp.linux-x86_64-cpython-310/src/grouping/grouping_cuda_kernel.o	36844ca0faf310c1
