@@ -64,10 +64,18 @@ def get_ed(x, y):
 def assign_kernel_withoutk(in_feat, kernel, M):
     B, Cin, N0 = in_feat.size()
     in_feat_trans = in_feat.permute(0, 2, 1)
-    out_feat_half1 = torch.matmul(in_feat_trans, kernel[:Cin]).view(B, N0, M, -1)  # b,n,m,o1
-    out_feat_half2 = torch.matmul(in_feat_trans, kernel[Cin:]).view(B, N0, M, -1)  # b,n,m,o1
+    out_feat_half1 = torch.matmul(in_feat_trans, kernel[:Cin]).view(
+        B, N0, M, -1
+    )  # b,n,m,o1
+    out_feat_half2 = torch.matmul(in_feat_trans, kernel[Cin:]).view(
+        B, N0, M, -1
+    )  # b,n,m,o1
     if in_feat.size(1) % 2 != 0:
-        out_feat_half_coord = torch.matmul(in_feat_trans[:, :, :3], kernel[Cin: Cin + 3]).view(B, N0, M, -1)  # b,n,m,o1
+        out_feat_half_coord = torch.matmul(
+            in_feat_trans[:, :, :3], kernel[Cin : Cin + 3]
+        ).view(
+            B, N0, M, -1
+        )  # b,n,m,o1
     else:
         out_feat_half_coord = torch.zeros_like(out_feat_half2)
     return out_feat_half1 + out_feat_half2, out_feat_half1 + out_feat_half_coord

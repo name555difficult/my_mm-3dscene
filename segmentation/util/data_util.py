@@ -12,7 +12,7 @@ def sa_create(name, var):
     x[...] = var[...]
     x.flags.writeable = False
     return x
-    
+
 
 def collate_fn_pretrain(batch):
     org_coord_1, org_feat_1 = list(zip(*batch))
@@ -21,9 +21,7 @@ def collate_fn_pretrain(batch):
     for item in org_coord_1:
         count_org_1 += item.shape[0]
         offset_org_1.append(count_org_1)
-    return  torch.cat(org_coord_1), torch.cat(org_feat_1), torch.IntTensor(offset_org_1)
-
-
+    return torch.cat(org_coord_1), torch.cat(org_feat_1), torch.IntTensor(offset_org_1)
 
 
 def collate_fn(batch):
@@ -37,11 +35,14 @@ def collate_fn(batch):
     for item in org_coord_1:
         count_org_1 += item.shape[0]
         offset_org_1.append(count_org_1)
-    return torch.cat(partial_coord_1), torch.cat(partial_feat_1), torch.cat(org_coord_1), torch.cat(org_feat_1), \
-        torch.IntTensor(offset_par_1),torch.IntTensor(offset_org_1)
-
-
-
+    return (
+        torch.cat(partial_coord_1),
+        torch.cat(partial_feat_1),
+        torch.cat(org_coord_1),
+        torch.cat(org_feat_1),
+        torch.IntTensor(offset_par_1),
+        torch.IntTensor(offset_org_1),
+    )
 
 
 # def collate_fn(batch):
@@ -84,13 +85,12 @@ def collate_fn(batch):
 #     # a = torch.cat(feat)
 #     # a = torch.cat(label)
 #     # a = torch.cat(targetpoints)
-    
+
 #     # a = torch.IntTensor(offset)
 #     return torch.cat(coord), torch.cat(feat), torch.cat(label),\
 #         torch.cat(target_points), torch.cat(target_feat),torch.cat(GT_feat), \
 #         torch.cat(crop_coord), torch.cat(crop_feat),\
 #         torch.IntTensor(offset),torch.IntTensor(offset2),torch.IntTensor(offset3)
-
 
 
 def collate_fn_s3dis(batch):
@@ -103,18 +103,25 @@ def collate_fn_s3dis(batch):
     # a = torch.cat(feat)
     # a = torch.cat(label)
     # a = torch.cat(targetpoints)
-    
+
     # a = torch.IntTensor(offset)
     return torch.cat(coord), torch.cat(feat), torch.cat(label), torch.IntTensor(offset)
 
 
-
-
-def data_prepare(coord, feat, label, split='train', voxel_size=0.04, voxel_max=None, transform=None, shuffle_index=False):
-    if np.min(feat)<0:
-        feat = (feat+1)*255./2.
-    if np.min(coord)<0:
-        coord = coord-np.min(coord,axis=0)
+def data_prepare(
+    coord,
+    feat,
+    label,
+    split="train",
+    voxel_size=0.04,
+    voxel_max=None,
+    transform=None,
+    shuffle_index=False,
+):
+    if np.min(feat) < 0:
+        feat = (feat + 1) * 255.0 / 2.0
+    if np.min(coord) < 0:
+        coord = coord - np.min(coord, axis=0)
 
     # print('@@',np.max(coord))
     # print('@@',np.min(coord))
@@ -122,30 +129,49 @@ def data_prepare(coord, feat, label, split='train', voxel_size=0.04, voxel_max=N
     org_feat = feat.copy()
     if transform:
         # print('feat')
-        
+
         coord, feat, label = transform(coord, feat, label)
     if voxel_size:
         coord_min = np.min(coord, axis=0)
         coord -= coord_min
         uniq_idx = voxelize(coord, voxel_size)
-        coord, feat, label, org_feat = coord[uniq_idx], feat[uniq_idx], label[uniq_idx],org_feat[uniq_idx]
+        coord, feat, label, org_feat = (
+            coord[uniq_idx],
+            feat[uniq_idx],
+            label[uniq_idx],
+            org_feat[uniq_idx],
+        )
     if voxel_max and label.shape[0] > voxel_max:
-        init_idx = np.random.randint(label.shape[0]) if 'train' in split else label.shape[0] // 2
+        init_idx = (
+            np.random.randint(label.shape[0])
+            if "train" in split
+            else label.shape[0] // 2
+        )
         crop_idx = np.argsort(np.sum(np.square(coord - coord[init_idx]), 1))[:voxel_max]
-        coord, feat, label, org_feat = coord[crop_idx], feat[crop_idx], label[crop_idx], org_feat[crop_idx]
+        coord, feat, label, org_feat = (
+            coord[crop_idx],
+            feat[crop_idx],
+            label[crop_idx],
+            org_feat[crop_idx],
+        )
     if shuffle_index:
         shuf_idx = np.arange(coord.shape[0])
         np.random.shuffle(shuf_idx)
-        coord, feat, label, org_feat = coord[shuf_idx], feat[shuf_idx], label[shuf_idx], org_feat[shuf_idx]
+        coord, feat, label, org_feat = (
+            coord[shuf_idx],
+            feat[shuf_idx],
+            label[shuf_idx],
+            org_feat[shuf_idx],
+        )
 
     coord_min = np.min(coord, 0)
     coord -= coord_min
     coord = torch.FloatTensor(coord)
 
     # if np.max(feat)>2:
-    feat = torch.FloatTensor(feat) / 255.
-    org_feat = torch.FloatTensor(org_feat) / 255.
+    feat = torch.FloatTensor(feat) / 255.0
+    org_feat = torch.FloatTensor(org_feat) / 255.0
     # else:
-        # feat = torch.FloatTensor(feat)
+    # feat = torch.FloatTensor(feat)
     label = torch.LongTensor(label)
     return coord, feat, label, org_feat

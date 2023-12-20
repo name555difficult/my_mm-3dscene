@@ -25,9 +25,21 @@ from util import transform as t
 
 
 def get_parser():
-    parser = argparse.ArgumentParser(description='PyTorch Point Cloud Semantic Segmentation')
-    parser.add_argument('--config', type=str, default='config/s3dis/s3dis_pointtransformer_repro.yaml', help='config file')
-    parser.add_argument('opts', help='see config/s3dis/s3dis_pointtransformer_repro.yaml for all options', default=None, nargs=argparse.REMAINDER)
+    parser = argparse.ArgumentParser(
+        description="PyTorch Point Cloud Semantic Segmentation"
+    )
+    parser.add_argument(
+        "--config",
+        type=str,
+        default="config/s3dis/s3dis_pointtransformer_repro.yaml",
+        help="config file",
+    )
+    parser.add_argument(
+        "opts",
+        help="see config/s3dis/s3dis_pointtransformer_repro.yaml for all options",
+        default=None,
+        nargs=argparse.REMAINDER,
+    )
     args = parser.parse_args()
     assert args.config is not None
     cfg = config.load_cfg_from_cfg_file(args.config)
@@ -52,12 +64,14 @@ def worker_init_fn(worker_id):
 
 
 def main_process():
-    return not args.multiprocessing_distributed or (args.multiprocessing_distributed and args.rank % args.ngpus_per_node == 0)
+    return not args.multiprocessing_distributed or (
+        args.multiprocessing_distributed and args.rank % args.ngpus_per_node == 0
+    )
 
 
 def main():
     args = get_parser()
-    os.environ["CUDA_VISIBLE_DEVICES"] = ','.join(str(x) for x in args.train_gpu)
+    os.environ["CUDA_VISIBLE_DEVICES"] = ",".join(str(x) for x in args.train_gpu)
 
     if args.manual_seed is not None:
         random.seed(args.manual_seed)
@@ -76,16 +90,18 @@ def main():
         args.distributed = False
         args.multiprocessing_distributed = False
 
-    if args.data_name == 's3dis':
-        S3DIS(split='train', data_root=args.data_root, test_area=args.test_area)
-        S3DIS(split='val', data_root=args.data_root, test_area=args.test_area)
+    if args.data_name == "s3dis":
+        S3DIS(split="train", data_root=args.data_root, test_area=args.test_area)
+        S3DIS(split="val", data_root=args.data_root, test_area=args.test_area)
     else:
         raise NotImplementedError()
     if args.multiprocessing_distributed:
         port = find_free_port()
         args.dist_url = f"tcp://localhost:{port}"
         args.world_size = args.ngpus_per_node * args.world_size
-        mp.spawn(main_worker, nprocs=args.ngpus_per_node, args=(args.ngpus_per_node, args))
+        mp.spawn(
+            main_worker, nprocs=args.ngpus_per_node, args=(args.ngpus_per_node, args)
+        )
     else:
         main_worker(args.train_gpu, args.ngpus_per_node, args)
 
@@ -98,19 +114,35 @@ def main_worker(gpu, ngpus_per_node, argss):
             args.rank = int(os.environ["RANK"])
         if args.multiprocessing_distributed:
             args.rank = args.rank * ngpus_per_node + gpu
-        dist.init_process_group(backend=args.dist_backend, init_method=args.dist_url, world_size=args.world_size, rank=args.rank)
+        dist.init_process_group(
+            backend=args.dist_backend,
+            init_method=args.dist_url,
+            world_size=args.world_size,
+            rank=args.rank,
+        )
 
-    if args.arch == 'pointtransformer_seg_repro':
-        from model.pointtransformer.pointtransformer_downstream_seg import pointtransformer_seg_repro as Model
+    if args.arch == "pointtransformer_seg_repro":
+        from model.pointtransformer.pointtransformer_downstream_seg import (
+            pointtransformer_seg_repro as Model,
+        )
     else:
-        raise Exception('architecture not supported yet'.format(args.arch))
+        raise Exception("architecture not supported yet".format(args.arch))
     model = Model(c=args.fea_dim, k=args.classes)
     if args.sync_bn:
-       model = nn.SyncBatchNorm.convert_sync_batchnorm(model)
+        model = nn.SyncBatchNorm.convert_sync_batchnorm(model)
     criterion = nn.CrossEntropyLoss(ignore_index=args.ignore_label).cuda()
 
-    optimizer = torch.optim.SGD(model.parameters(), lr=args.base_lr, momentum=args.momentum, weight_decay=args.weight_decay)
-    scheduler = lr_scheduler.MultiStepLR(optimizer, milestones=[int(args.epochs*0.6), int(args.epochs*0.8)], gamma=0.1)
+    optimizer = torch.optim.SGD(
+        model.parameters(),
+        lr=args.base_lr,
+        momentum=args.momentum,
+        weight_decay=args.weight_decay,
+    )
+    scheduler = lr_scheduler.MultiStepLR(
+        optimizer,
+        milestones=[int(args.epochs * 0.6), int(args.epochs * 0.8)],
+        gamma=0.1,
+    )
 
     if main_process():
         global logger, writer
@@ -128,7 +160,7 @@ def main_worker(gpu, ngpus_per_node, argss):
         model = torch.nn.parallel.DistributedDataParallel(
             model.cuda(),
             device_ids=[gpu],
-            find_unused_parameters=True if "transformer" in args.arch else False
+            find_unused_parameters=True if "transformer" in args.arch else False,
         )
 
     else:
@@ -142,15 +174,17 @@ def main_worker(gpu, ngpus_per_node, argss):
             # model.load_state_dict(checkpoint['state_dict'])
 
             ckpt = torch.load(args.weight)
-            pretrained_dict = ckpt['state_dict']
+            pretrained_dict = ckpt["state_dict"]
             model_dict = model.state_dict()
-            pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in model_dict and 'cls_pt' not in k}
+            pretrained_dict = {
+                k: v
+                for k, v in pretrained_dict.items()
+                if k in model_dict and "cls_pt" not in k
+            }
             for k, v in pretrained_dict.items():
                 print(k)
             model_dict.update(pretrained_dict)
             model.load_state_dict(model_dict)
-
-
 
             if main_process():
                 logger.info("=> loaded weight '{}'".format(args.weight))
@@ -161,83 +195,145 @@ def main_worker(gpu, ngpus_per_node, argss):
         if os.path.isfile(args.resume):
             if main_process():
                 logger.info("=> loading checkpoint '{}'".format(args.resume))
-            checkpoint = torch.load(args.resume, map_location=lambda storage, loc: storage.cuda())
-            args.start_epoch = checkpoint['epoch']
-            model.load_state_dict(checkpoint['state_dict'], strict=True)
-            optimizer.load_state_dict(checkpoint['optimizer'])
-            scheduler.load_state_dict(checkpoint['scheduler'])
-            #best_iou = 40.0
-            best_iou = checkpoint['best_iou']
+            checkpoint = torch.load(
+                args.resume, map_location=lambda storage, loc: storage.cuda()
+            )
+            args.start_epoch = checkpoint["epoch"]
+            model.load_state_dict(checkpoint["state_dict"], strict=True)
+            optimizer.load_state_dict(checkpoint["optimizer"])
+            scheduler.load_state_dict(checkpoint["scheduler"])
+            # best_iou = 40.0
+            best_iou = checkpoint["best_iou"]
             if main_process():
-                logger.info("=> loaded checkpoint '{}' (epoch {})".format(args.resume, checkpoint['epoch']))
+                logger.info(
+                    "=> loaded checkpoint '{}' (epoch {})".format(
+                        args.resume, checkpoint["epoch"]
+                    )
+                )
         else:
             if main_process():
                 logger.info("=> no checkpoint found at '{}'".format(args.resume))
 
-    train_transform = t.Compose([t.RandomScale([0.9, 1.1]), t.ChromaticAutoContrast(), t.ChromaticTranslation(), t.ChromaticJitter(), t.HueSaturationTranslation()])
-    train_data = S3DIS(split='train', data_root=args.data_root, test_area=args.test_area, voxel_size=args.voxel_size, voxel_max=args.voxel_max, transform=train_transform, shuffle_index=True, loop=args.loop)
+    train_transform = t.Compose(
+        [
+            t.RandomScale([0.9, 1.1]),
+            t.ChromaticAutoContrast(),
+            t.ChromaticTranslation(),
+            t.ChromaticJitter(),
+            t.HueSaturationTranslation(),
+        ]
+    )
+    train_data = S3DIS(
+        split="train",
+        data_root=args.data_root,
+        test_area=args.test_area,
+        voxel_size=args.voxel_size,
+        voxel_max=args.voxel_max,
+        transform=train_transform,
+        shuffle_index=True,
+        loop=args.loop,
+    )
     if main_process():
-            logger.info("train_data samples: '{}'".format(len(train_data)))
+        logger.info("train_data samples: '{}'".format(len(train_data)))
     if args.distributed:
         train_sampler = torch.utils.data.distributed.DistributedSampler(train_data)
     else:
         train_sampler = None
-    train_loader = torch.utils.data.DataLoader(train_data, batch_size=args.batch_size, shuffle=(train_sampler is None), num_workers=args.workers, pin_memory=True, sampler=train_sampler, drop_last=True, collate_fn=collate_fn_s3dis)
+    train_loader = torch.utils.data.DataLoader(
+        train_data,
+        batch_size=args.batch_size,
+        shuffle=(train_sampler is None),
+        num_workers=args.workers,
+        pin_memory=True,
+        sampler=train_sampler,
+        drop_last=True,
+        collate_fn=collate_fn_s3dis,
+    )
 
     val_loader = None
     if args.evaluate:
         val_transform = None
-        val_data = S3DIS(split='val', data_root=args.data_root, test_area=args.test_area, voxel_size=args.voxel_size, voxel_max=800000, transform=val_transform)
+        val_data = S3DIS(
+            split="val",
+            data_root=args.data_root,
+            test_area=args.test_area,
+            voxel_size=args.voxel_size,
+            voxel_max=800000,
+            transform=val_transform,
+        )
         if args.distributed:
             val_sampler = torch.utils.data.distributed.DistributedSampler(val_data)
         else:
             val_sampler = None
-        val_loader = torch.utils.data.DataLoader(val_data, batch_size=args.batch_size_val, shuffle=False, num_workers=args.workers, pin_memory=True, sampler=val_sampler, collate_fn=collate_fn_s3dis)
+        val_loader = torch.utils.data.DataLoader(
+            val_data,
+            batch_size=args.batch_size_val,
+            shuffle=False,
+            num_workers=args.workers,
+            pin_memory=True,
+            sampler=val_sampler,
+            collate_fn=collate_fn_s3dis,
+        )
 
     for epoch in range(args.start_epoch, args.epochs):
         if args.distributed:
             train_sampler.set_epoch(epoch)
-        loss_train, mIoU_train, mAcc_train, allAcc_train = train(train_loader, model, criterion, optimizer, epoch)
+        loss_train, mIoU_train, mAcc_train, allAcc_train = train(
+            train_loader, model, criterion, optimizer, epoch
+        )
         scheduler.step()
         epoch_log = epoch + 1
         if main_process():
-            writer.add_scalar('loss_train', loss_train, epoch_log)
-            writer.add_scalar('mIoU_train', mIoU_train, epoch_log)
-            writer.add_scalar('mAcc_train', mAcc_train, epoch_log)
-            writer.add_scalar('allAcc_train', allAcc_train, epoch_log)
+            writer.add_scalar("loss_train", loss_train, epoch_log)
+            writer.add_scalar("mIoU_train", mIoU_train, epoch_log)
+            writer.add_scalar("mAcc_train", mAcc_train, epoch_log)
+            writer.add_scalar("allAcc_train", allAcc_train, epoch_log)
 
         is_best = False
         if args.evaluate and (epoch_log % args.eval_freq == 0):
-            if args.data_name == 'shapenet':
+            if args.data_name == "shapenet":
                 raise NotImplementedError()
             else:
-                loss_val, mIoU_val, mAcc_val, allAcc_val = validate(val_loader, model, criterion)
+                loss_val, mIoU_val, mAcc_val, allAcc_val = validate(
+                    val_loader, model, criterion
+                )
 
             if main_process():
-                writer.add_scalar('loss_val', loss_val, epoch_log)
-                writer.add_scalar('mIoU_val', mIoU_val, epoch_log)
-                writer.add_scalar('mAcc_val', mAcc_val, epoch_log)
-                writer.add_scalar('allAcc_val', allAcc_val, epoch_log)
+                writer.add_scalar("loss_val", loss_val, epoch_log)
+                writer.add_scalar("mIoU_val", mIoU_val, epoch_log)
+                writer.add_scalar("mAcc_val", mAcc_val, epoch_log)
+                writer.add_scalar("allAcc_val", allAcc_val, epoch_log)
                 is_best = mIoU_val > best_iou
                 best_iou = max(best_iou, mIoU_val)
 
-
         if (epoch_log % args.save_freq == 0) and main_process():
-            filename = args.save_path + '/model/model_last.pth'
-            logger.info('Saving checkpoint to: ' + filename)
-            torch.save({'epoch': epoch_log, 'state_dict': model.state_dict(), 'optimizer': optimizer.state_dict(),
-                        'scheduler': scheduler.state_dict(), 'best_iou': best_iou, 'is_best': is_best}, filename)
+            filename = args.save_path + "/model/model_last.pth"
+            logger.info("Saving checkpoint to: " + filename)
+            torch.save(
+                {
+                    "epoch": epoch_log,
+                    "state_dict": model.state_dict(),
+                    "optimizer": optimizer.state_dict(),
+                    "scheduler": scheduler.state_dict(),
+                    "best_iou": best_iou,
+                    "is_best": is_best,
+                },
+                filename,
+            )
             if mIoU_val > 0.70:
-                logger.info('SAVE  to: {:.4f}'.format(mIoU_val))
-                shutil.copyfile(filename, args.save_path + '/model/AA_model_'+str(mIoU_val)+'.pth')
-                
+                logger.info("SAVE  to: {:.4f}".format(mIoU_val))
+                shutil.copyfile(
+                    filename,
+                    args.save_path + "/model/AA_model_" + str(mIoU_val) + ".pth",
+                )
+
             if is_best:
-                logger.info('Best validation mIoU updated to: {:.4f}'.format(best_iou))
-                shutil.copyfile(filename, args.save_path + '/model/model_best.pth')
+                logger.info("Best validation mIoU updated to: {:.4f}".format(best_iou))
+                shutil.copyfile(filename, args.save_path + "/model/model_best.pth")
 
     if main_process():
         writer.close()
-        logger.info('==>Training done!\nBest Iou: %.3f' % (best_iou))
+        logger.info("==>Training done!\nBest Iou: %.3f" % (best_iou))
 
 
 def train(train_loader, model, criterion, optimizer, epoch):
@@ -253,12 +349,19 @@ def train(train_loader, model, criterion, optimizer, epoch):
     max_iter = args.epochs * len(train_loader)
 
     for param_group in optimizer.param_groups:
-        param_group['lr'] = 0.001
+        param_group["lr"] = 0.001
 
-    for i, (coord, feat, target, offset) in enumerate(train_loader):  # (n, 3), (n, c), (n), (b)
+    for i, (coord, feat, target, offset) in enumerate(
+        train_loader
+    ):  # (n, 3), (n, c), (n), (b)
         data_time.update(time.time() - end)
-        coord, feat, target, offset = coord.cuda(non_blocking=True), feat.cuda(non_blocking=True), target.cuda(non_blocking=True), offset.cuda(non_blocking=True)
-        output= model([coord, feat, offset])
+        coord, feat, target, offset = (
+            coord.cuda(non_blocking=True),
+            feat.cuda(non_blocking=True),
+            target.cuda(non_blocking=True),
+            offset.cuda(non_blocking=True),
+        )
+        output = model([coord, feat, offset])
 
         loss = criterion(output, target)
         optimizer.zero_grad()
@@ -273,11 +376,21 @@ def train(train_loader, model, criterion, optimizer, epoch):
             dist.all_reduce(loss), dist.all_reduce(count)
             n = count.item()
             loss /= n
-        intersection, union, target = intersectionAndUnionGPU(output, target, args.classes, args.ignore_label)
+        intersection, union, target = intersectionAndUnionGPU(
+            output, target, args.classes, args.ignore_label
+        )
         if args.multiprocessing_distributed:
-            dist.all_reduce(intersection), dist.all_reduce(union), dist.all_reduce(target)
-        intersection, union, target = intersection.cpu().numpy(), union.cpu().numpy(), target.cpu().numpy()
-        intersection_meter.update(intersection), union_meter.update(union), target_meter.update(target)
+            dist.all_reduce(intersection), dist.all_reduce(union), dist.all_reduce(
+                target
+            )
+        intersection, union, target = (
+            intersection.cpu().numpy(),
+            union.cpu().numpy(),
+            target.cpu().numpy(),
+        )
+        intersection_meter.update(intersection), union_meter.update(
+            union
+        ), target_meter.update(target)
 
         accuracy = sum(intersection_meter.val) / (sum(target_meter.val) + 1e-10)
         loss_meter.update(loss.item(), n)
@@ -290,24 +403,40 @@ def train(train_loader, model, criterion, optimizer, epoch):
         remain_time = remain_iter * batch_time.avg
         t_m, t_s = divmod(remain_time, 60)
         t_h, t_m = divmod(t_m, 60)
-        remain_time = '{:02d}:{:02d}:{:02d}'.format(int(t_h), int(t_m), int(t_s))
+        remain_time = "{:02d}:{:02d}:{:02d}".format(int(t_h), int(t_m), int(t_s))
 
         if (i + 1) % args.print_freq == 0 and main_process():
-            logger.info('Epoch: [{}/{}][{}/{}] '
-                        'Data {data_time.val:.3f} ({data_time.avg:.3f}) '
-                        'Batch {batch_time.val:.3f} ({batch_time.avg:.3f}) '
-                        'Remain {remain_time} '
-                        'Loss {loss_meter.val:.4f} '
-                        'Accuracy {accuracy:.4f}.'.format(epoch+1, args.epochs, i + 1, len(train_loader),
-                                                          batch_time=batch_time, data_time=data_time,
-                                                          remain_time=remain_time,
-                                                          loss_meter=loss_meter,
-                                                          accuracy=accuracy))
+            logger.info(
+                "Epoch: [{}/{}][{}/{}] "
+                "Data {data_time.val:.3f} ({data_time.avg:.3f}) "
+                "Batch {batch_time.val:.3f} ({batch_time.avg:.3f}) "
+                "Remain {remain_time} "
+                "Loss {loss_meter.val:.4f} "
+                "Accuracy {accuracy:.4f}.".format(
+                    epoch + 1,
+                    args.epochs,
+                    i + 1,
+                    len(train_loader),
+                    batch_time=batch_time,
+                    data_time=data_time,
+                    remain_time=remain_time,
+                    loss_meter=loss_meter,
+                    accuracy=accuracy,
+                )
+            )
         if main_process():
-            writer.add_scalar('loss_train_batch', loss_meter.val, current_iter)
-            writer.add_scalar('mIoU_train_batch', np.mean(intersection / (union + 1e-10)), current_iter)
-            writer.add_scalar('mAcc_train_batch', np.mean(intersection / (target + 1e-10)), current_iter)
-            writer.add_scalar('allAcc_train_batch', accuracy, current_iter)
+            writer.add_scalar("loss_train_batch", loss_meter.val, current_iter)
+            writer.add_scalar(
+                "mIoU_train_batch",
+                np.mean(intersection / (union + 1e-10)),
+                current_iter,
+            )
+            writer.add_scalar(
+                "mAcc_train_batch",
+                np.mean(intersection / (target + 1e-10)),
+                current_iter,
+            )
+            writer.add_scalar("allAcc_train_batch", accuracy, current_iter)
 
     iou_class = intersection_meter.sum / (union_meter.sum + 1e-10)
     accuracy_class = intersection_meter.sum / (target_meter.sum + 1e-10)
@@ -315,13 +444,17 @@ def train(train_loader, model, criterion, optimizer, epoch):
     mAcc = np.mean(accuracy_class)
     allAcc = sum(intersection_meter.sum) / (sum(target_meter.sum) + 1e-10)
     if main_process():
-        logger.info('Train result at epoch [{}/{}]: mIoU/mAcc/allAcc {:.4f}/{:.4f}/{:.4f}.'.format(epoch+1, args.epochs, mIoU, mAcc, allAcc))
+        logger.info(
+            "Train result at epoch [{}/{}]: mIoU/mAcc/allAcc {:.4f}/{:.4f}/{:.4f}.".format(
+                epoch + 1, args.epochs, mIoU, mAcc, allAcc
+            )
+        )
     return loss_meter.avg, mIoU, mAcc, allAcc
 
 
 def validate(val_loader, model, criterion):
     if main_process():
-        logger.info('>>>>>>>>>>>>>>>> Start Evaluation >>>>>>>>>>>>>>>>')
+        logger.info(">>>>>>>>>>>>>>>> Start Evaluation >>>>>>>>>>>>>>>>")
     batch_time = AverageMeter()
     data_time = AverageMeter()
     loss_meter = AverageMeter()
@@ -333,7 +466,12 @@ def validate(val_loader, model, criterion):
     end = time.time()
     for i, (coord, feat, target, offset) in enumerate(val_loader):
         data_time.update(time.time() - end)
-        coord, feat, target, offset = coord.cuda(non_blocking=True), feat.cuda(non_blocking=True), target.cuda(non_blocking=True), offset.cuda(non_blocking=True)
+        coord, feat, target, offset = (
+            coord.cuda(non_blocking=True),
+            feat.cuda(non_blocking=True),
+            target.cuda(non_blocking=True),
+            offset.cuda(non_blocking=True),
+        )
         if target.shape[-1] == 1:
             target = target[:, 0]  # for cls
         with torch.no_grad():
@@ -349,26 +487,41 @@ def validate(val_loader, model, criterion):
             n = count.item()
             loss /= n
 
-        intersection, union, target = intersectionAndUnionGPU(output, target, args.classes, args.ignore_label)
+        intersection, union, target = intersectionAndUnionGPU(
+            output, target, args.classes, args.ignore_label
+        )
         if args.multiprocessing_distributed:
-            dist.all_reduce(intersection), dist.all_reduce(union), dist.all_reduce(target)
-        intersection, union, target = intersection.cpu().numpy(), union.cpu().numpy(), target.cpu().numpy()
-        intersection_meter.update(intersection), union_meter.update(union), target_meter.update(target)
+            dist.all_reduce(intersection), dist.all_reduce(union), dist.all_reduce(
+                target
+            )
+        intersection, union, target = (
+            intersection.cpu().numpy(),
+            union.cpu().numpy(),
+            target.cpu().numpy(),
+        )
+        intersection_meter.update(intersection), union_meter.update(
+            union
+        ), target_meter.update(target)
 
         accuracy = sum(intersection_meter.val) / (sum(target_meter.val) + 1e-10)
         loss_meter.update(loss.item(), n)
         batch_time.update(time.time() - end)
         end = time.time()
         if (i + 1) % args.print_freq == 0 and main_process():
-            logger.info('Test: [{}/{}] '
-                        'Data {data_time.val:.3f} ({data_time.avg:.3f}) '
-                        'Batch {batch_time.val:.3f} ({batch_time.avg:.3f}) '
-                        'Loss {loss_meter.val:.4f} ({loss_meter.avg:.4f}) '
-                        'Accuracy {accuracy:.4f}.'.format(i + 1, len(val_loader),
-                                                          data_time=data_time,
-                                                          batch_time=batch_time,
-                                                          loss_meter=loss_meter,
-                                                          accuracy=accuracy))
+            logger.info(
+                "Test: [{}/{}] "
+                "Data {data_time.val:.3f} ({data_time.avg:.3f}) "
+                "Batch {batch_time.val:.3f} ({batch_time.avg:.3f}) "
+                "Loss {loss_meter.val:.4f} ({loss_meter.avg:.4f}) "
+                "Accuracy {accuracy:.4f}.".format(
+                    i + 1,
+                    len(val_loader),
+                    data_time=data_time,
+                    batch_time=batch_time,
+                    loss_meter=loss_meter,
+                    accuracy=accuracy,
+                )
+            )
 
     iou_class = intersection_meter.sum / (union_meter.sum + 1e-10)
     accuracy_class = intersection_meter.sum / (target_meter.sum + 1e-10)
@@ -377,15 +530,24 @@ def validate(val_loader, model, criterion):
     allAcc = sum(intersection_meter.sum) / (sum(target_meter.sum) + 1e-10)
 
     if main_process():
-        logger.info('Val result: mIoU/mAcc/allAcc {:.4f}/{:.4f}/{:.4f}.'.format(mIoU, mAcc, allAcc))
+        logger.info(
+            "Val result: mIoU/mAcc/allAcc {:.4f}/{:.4f}/{:.4f}.".format(
+                mIoU, mAcc, allAcc
+            )
+        )
         for i in range(args.classes):
-            logger.info('Class_{} Result: iou/accuracy {:.4f}/{:.4f}.'.format(i, iou_class[i], accuracy_class[i]))
-        logger.info('<<<<<<<<<<<<<<<<< End Evaluation <<<<<<<<<<<<<<<<<')
+            logger.info(
+                "Class_{} Result: iou/accuracy {:.4f}/{:.4f}.".format(
+                    i, iou_class[i], accuracy_class[i]
+                )
+            )
+        logger.info("<<<<<<<<<<<<<<<<< End Evaluation <<<<<<<<<<<<<<<<<")
 
     return loss_meter.avg, mIoU, mAcc, allAcc
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     import gc
+
     gc.collect()
     main()

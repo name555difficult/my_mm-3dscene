@@ -52,7 +52,9 @@ class RandomScale(object):
         self.anisotropic = anisotropic
 
     def __call__(self, coord, feat, label):
-        scale = np.random.uniform(self.scale[0], self.scale[1], 3 if self.anisotropic else 1)
+        scale = np.random.uniform(
+            self.scale[0], self.scale[1], 3 if self.anisotropic else 1
+        )
         coord *= scale
         return coord, feat, label
 
@@ -87,8 +89,10 @@ class RandomJitter(object):
         self.clip = clip
 
     def __call__(self, coord, feat, label):
-        assert (self.clip > 0)
-        jitter = np.clip(self.sigma * np.random.randn(coord.shape[0], 3), -1 * self.clip, self.clip)
+        assert self.clip > 0
+        jitter = np.clip(
+            self.sigma * np.random.randn(coord.shape[0], 3), -1 * self.clip, self.clip
+        )
         coord += jitter
         return coord, feat, label
 
@@ -104,8 +108,12 @@ class ChromaticAutoContrast(object):
             hi = np.max(feat, 0, keepdims=True)
             scale = 255 / (hi - lo)
             contrast_feat = (feat[:, :3] - lo) * scale
-            blend_factor = np.random.rand() if self.blend_factor is None else self.blend_factor
-            feat[:, :3] = (1 - blend_factor) * feat[:, :3] + blend_factor * contrast_feat
+            blend_factor = (
+                np.random.rand() if self.blend_factor is None else self.blend_factor
+            )
+            feat[:, :3] = (1 - blend_factor) * feat[
+                :, :3
+            ] + blend_factor * contrast_feat
         return coord, feat, label
 
 
@@ -140,7 +148,7 @@ class HueSaturationTranslation(object):
         # Translated from source of colorsys.rgb_to_hsv
         # r,g,b should be a numpy arrays with values between 0 and 255
         # rgb_to_hsv returns an array of floats between 0.0 and 1.0.
-        rgb = rgb.astype('float')
+        rgb = rgb.astype("float")
         hsv = np.zeros_like(rgb)
         # in case an RGBA array was passed, just copy the A channel
         hsv[..., 3:] = rgb[..., 3:]
@@ -156,7 +164,9 @@ class HueSaturationTranslation(object):
         rc[mask] = (maxc - r)[mask] / (maxc - minc)[mask]
         gc[mask] = (maxc - g)[mask] / (maxc - minc)[mask]
         bc[mask] = (maxc - b)[mask] / (maxc - minc)[mask]
-        hsv[..., 0] = np.select([r == maxc, g == maxc], [bc - gc, 2.0 + rc - bc], default=4.0 + gc - rc)
+        hsv[..., 0] = np.select(
+            [r == maxc, g == maxc], [bc - gc, 2.0 + rc - bc], default=4.0 + gc - rc
+        )
         hsv[..., 0] = (hsv[..., 0] / 6.0) % 1.0
         return hsv
 
@@ -169,7 +179,7 @@ class HueSaturationTranslation(object):
         rgb = np.empty_like(hsv)
         rgb[..., 3:] = hsv[..., 3:]
         h, s, v = hsv[..., 0], hsv[..., 1], hsv[..., 2]
-        i = (h * 6.0).astype('uint8')
+        i = (h * 6.0).astype("uint8")
         f = (h * 6.0) - i
         p = v * (1.0 - s)
         q = v * (1.0 - s * f)
@@ -179,7 +189,7 @@ class HueSaturationTranslation(object):
         rgb[..., 0] = np.select(conditions, [v, q, p, p, t, v], default=v)
         rgb[..., 1] = np.select(conditions, [v, v, v, q, p, p], default=t)
         rgb[..., 2] = np.select(conditions, [v, p, t, v, v, q], default=p)
-        return rgb.astype('uint8')
+        return rgb.astype("uint8")
 
     def __init__(self, hue_max=0.5, saturation_max=0.2):
         self.hue_max = hue_max
