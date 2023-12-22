@@ -1,6 +1,7 @@
-
+export TORCH_CUDA_ARCH_LIST="8.6;8.6+PTX"
 export PYTHONPATH=./
 eval "$(conda shell.bash hook)"
+conda activate py310
 PYTHON=python
 
 TEST_CODE=test_s3dis.py

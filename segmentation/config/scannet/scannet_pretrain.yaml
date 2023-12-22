@@ -1,6 +1,6 @@
 DATA:
   data_name: scannet
-  data_root: dataset/scannet
+  data_root: /home/ssd8t/wzb/dataset/scannet
   fea_dim: 6
   voxel_size: 0.02
   voxel_max: 120000
@@ -12,7 +12,7 @@ TRAIN:
   use_xyz: True
   sync_bn: False  # adopt sync_bn or not
   ignore_label: 255
-  train_gpu: [4,5,6,7]
+  train_gpu: [0,1]
   workers: 1   # data loader workers
   batch_size: 8  # batch size for training
   batch_size_val: 4   # batch size for validation during training, memory and speed tradeoff

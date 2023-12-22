@@ -1,6 +1,6 @@
 DATA:
   data_name: s3dis
-  data_root: ../data/s3dis/trainval_fullarea
+  data_root: /home/ssd8t/wzb/dataset/s3dis/trainval_fullarea/
   test_area: 5
   classes: 13
   fea_dim: 6
@@ -13,7 +13,7 @@ TRAIN:
   use_xyz: True
   sync_bn: False
   ignore_label: 255
-  train_gpu: [0,1,2,3]
+  train_gpu: [1]
   workers: 8  # data loader workers
   batch_size: 16  # batch size for training
   batch_size_val: 4  # batch size for validation during training, memory and speed tradeoff
@@ -42,12 +42,12 @@ Distributed:
   rank: 0
 
 TEST:
-  test_list: dataset/s3dis/list/val5.txt
-  test_list_full: dataset/s3dis/list/val5_full.txt
+  test_list: /home/ssd8t/wzb/dataset/s3dis/list/val5.txt
+  test_list_full: /home/ssd8t/wzb/dataset/s3dis/list/val5_full.txt
   split: val  # split in [train, val and test]
-  test_gpu: [4]
+  test_gpu: [1]
   test_workers: 4
   batch_size_test: 4
   model_path: ./exp/s3dis/pointtransformer_repro
   save_folder: ./exp/s3dis/pointtransformer_repro
-  names_path: data/s3dis/s3dis_names.txt
+  names_path: /home/ssd8t/wzb/dataset/s3dis/s3dis_names.txt

@@ -10,14 +10,21 @@ Usage example: python ./batch_load_scannet_data.py
 """
 import os
 import sys
+
+# add path for "util" sub-module
+sys.path.insert(0, "/home/ssd8t/wzb/mm-3dscene/detection/pretrain/scannet")
 import datetime
 import numpy as np
 from load_scannet_data import export
 import pdb
 
-SCANNET_DIR = "scans"
-TRAIN_SCAN_NAMES = [line.rstrip() for line in open("meta_data/scannet_train.txt")]
-LABEL_MAP_FILE = "meta_data/scannetv2-labels.combined.tsv"
+ROOT_DIR = "/home/ssd8t/wzb/dataset/scannet"
+SCANNET_DIR = "/home/ssd8t/wzb/dataset/scannet/scans"
+TRAIN_SCAN_NAMES = [
+    line.rstrip()
+    for line in open(os.path.join(ROOT_DIR, "meta_data/scannet_train.txt"))
+]
+LABEL_MAP_FILE = os.path.join(ROOT_DIR, "meta_data/scannetv2-labels.combined.tsv")
 DONOTCARE_CLASS_IDS = np.array([])
 OBJ_CLASS_IDS = np.array(
     [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 16, 24, 28, 33, 34, 36, 39]

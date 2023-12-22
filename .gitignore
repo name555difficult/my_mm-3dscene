@@ -1,7 +1,8 @@
-**/_pycache_
+**/_pycache_/*.pyc
 .DS_Store
 detection/.DS_Store
 detection/pretrain/.DS_Store
 detection/pretrain/.DS_Store
 detection/.DS_Store
 .vscode/
+**/exp/
